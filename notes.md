@@ -1,0 +1,12 @@
+`python
+        data.append(self.sites_selection_dialog.projectName.text())
+        data.append(self.sites_selection_dialog.userName.text())
+        data.append(self.sites_selection_dialog.projectDesc.toPlainText())
+        data.append()
+        data.append(self.sites_selection_dialog.ratserResulution.text())
+        data.append(self.sites_selection_dialog.projectionSystemSelected.crs())
+        data.append(self.sites_selection_dialog.constraintName.text())
+        data.append(self.sites_selection_dialog.constraintFile.filePath())
+        data.append(self.sites_selection_dialog.constraintDesc.toPlainText())
+        print(data)
+`
