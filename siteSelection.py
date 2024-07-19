@@ -32,6 +32,7 @@ from .resources import *
 from .siteSelection_dialog import SiteSelectionDialog
 import os.path
 from osgeo import gdal, ogr
+
 def get_extent(shapefile):
         ds = ogr.Open(shapefile)
         layer = ds.GetLayer()
@@ -72,6 +73,46 @@ def shapefile_to_raster(shapefile, output_path, xmin, xmax, ymin, ymax, resoluti
         print(f"Error: {str(e)}")
         if target_ds is not None:
             target_ds = None
+
+def get_full_file_paths(directory):
+    # List all files in the directory
+    files = os.listdir(directory)
+    
+    # Get the full path for each file
+    full_paths = [os.path.join(directory, file) for file in files]
+    
+    return full_paths
+
+def calculate_proximity(input_raster, output_raster):
+    try:
+        # Open the input raster
+        src_ds = gdal.Open(input_raster)
+        if src_ds is None:
+            raise Exception(f"Failed to open input raster: {input_raster}")
+
+        # Create the output raster
+        driver = gdal.GetDriverByName('GTiff')
+        if driver is None:
+            raise Exception("GTiff driver is not available")
+
+        dst_ds = driver.Create(output_raster, src_ds.RasterXSize, src_ds.RasterYSize, 1, gdal.GDT_Float32)
+        if dst_ds is None:
+            raise Exception(f"Failed to create output raster: {output_raster}")
+
+        dst_ds.SetGeoTransform(src_ds.GetGeoTransform())
+        dst_ds.SetProjection(src_ds.GetProjectionRef())
+
+        # Compute proximity
+        gdal.ComputeProximity(src_ds.GetRasterBand(1), dst_ds.GetRasterBand(1), ["DISTUNITS=GEO"])
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+    finally:
+        # Ensure datasets are properly closed
+        if src_ds:
+            src_ds = None
+        if dst_ds:
+            dst_ds = None
 
 class SiteSelection:
     """QGIS Plugin Implementation."""
@@ -227,16 +268,33 @@ class SiteSelection:
         return data
 
     def __get_data(self):
+        # rasterasation:
+
         study_area = self.sites_selection_dialog.studyAreaShapeFile.filePath()
         xmin, xmax, ymin, ymax = get_extent(study_area)
         resolution = 28.38985503875978011
-        output_dir = r'C:\Users\elbou\Documents\Master_siggr\sig_project\Integration of GIS and MCA for school site selection\school_project_SIG'
+        output_dir = r'C:\Users\elbou\Documents\Master_siggr\sig_project\Integration of GIS and MCA for school site selection\school_project_SIG\rasterize'
+        os.makedirs(output_dir, exist_ok=True)
         data = self.get_criterion()
+
         for shapefile in data:
             base_name = os.path.basename(shapefile).replace('.shp', '.tif')
             output_path = os.path.join(output_dir, base_name)
             # rasterize 
             shapefile_to_raster(shapefile, output_path, xmin, xmax, ymin, ymax, resolution)
+        
+        # applaying the proximity
+        proximity_dir = r'C:\Users\elbou\Documents\Master_siggr\sig_project\Integration of GIS and MCA for school site selection\school_project_SIG\proxymity'
+        os.makedirs(proximity_dir, exist_ok=True)
+
+        data = get_full_file_paths(output_dir)
+
+        for raster in data:
+            base_name = os.path.basename(raster)
+            proximity_path = os.path.join(proximity_dir, "prox_" + base_name)
+            # Calculate proximity
+            calculate_proximity(raster, proximity_path)
+        
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
