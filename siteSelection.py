@@ -32,6 +32,7 @@ from .resources import *
 from .siteSelection_dialog import SiteSelectionDialog
 import os.path
 from osgeo import gdal, ogr
+from .suitability_value import SuitabilityValueDialog
 
 def get_extent(shapefile):
         ds = ogr.Open(shapefile)
@@ -253,9 +254,22 @@ class SiteSelection:
             parent=self.iface.mainWindow())
         #add variables
         self.sites_selection_dialog.runBtn.clicked.connect(self.__get_data)
-
+        self.sites_selection_dialog.CriteriaNumberOneBtn.clicked.connect(self.open_suitability_dialog)
+        self.sites_selection_dialog.CriteriaNumberTwoBtn.clicked.connect(self.open_suitability_dialog)
+        self.sites_selection_dialog.CriteriaNumberThreeBtn.clicked.connect(self.open_suitability_dialog)
+        self.sites_selection_dialog.CriteriaNumberFourBtn.clicked.connect(self.open_suitability_dialog)
+        self.sites_selection_dialog.CriteriaNumberFiveBtn.clicked.connect(self.open_suitability_dialog)
+        self.sites_selection_dialog.CriteriaNumberSixBtn.clicked.connect(self.open_suitability_dialog)
         # will be set False in run()
         self.first_start = True
+
+    def open_suitability_dialog(self):
+        # Create an instance of the new dialog
+        suitability_dialog = SuitabilityValueDialog()
+        # Show the new dialog
+        suitability_dialog.exec_()
+        values = suitability_dialog.get_table_values()
+        print("User entered values:", values)
 
     def get_criterion(self):
         data = []
@@ -269,14 +283,14 @@ class SiteSelection:
 
     def __get_data(self):
         # rasterasation:
-
         study_area = self.sites_selection_dialog.studyAreaShapeFile.filePath()
         xmin, xmax, ymin, ymax = get_extent(study_area)
+
         resolution = 28.38985503875978011
         output_dir = r'C:\Users\elbou\Documents\Master_siggr\sig_project\Integration of GIS and MCA for school site selection\school_project_SIG\rasterize'
         os.makedirs(output_dir, exist_ok=True)
-        data = self.get_criterion()
 
+        data = self.get_criterion()
         for shapefile in data:
             base_name = os.path.basename(shapefile).replace('.shp', '.tif')
             output_path = os.path.join(output_dir, base_name)
@@ -294,7 +308,7 @@ class SiteSelection:
             proximity_path = os.path.join(proximity_dir, "prox_" + base_name)
             # Calculate proximity
             calculate_proximity(raster, proximity_path)
-        
+
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
